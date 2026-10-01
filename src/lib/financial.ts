@@ -309,3 +309,187 @@ export async function calculateCashForecast(): Promise<ForecastSummary> {
     hitosCriticos,
   };
 }
+
+export interface CollectionsItem {
+  id_documento: string;
+  id_cliente: string;
+  razon_social: string;
+  contacto_nombre: string;
+  contacto_email: string;
+  contacto_telefono: string;
+  ejecutivo_comercial: string;
+  segmento: string;
+  limite_credito: number;
+  es_vip: boolean;
+  fecha_emision: string;
+  fecha_vencimiento: string | null;
+  monto_total: number;
+  saldo_pendiente: number;
+  dias_mora: number;
+  en_disputa: boolean;
+  categoria_aging: "1-30" | "31-60" | "61-90" | "+90";
+  es_pareto_80: boolean;
+  ranking_prioridad: number;
+  score_prioridad: number;
+  nivel_prioridad: "critica" | "alta" | "media" | "baja";
+}
+
+export interface CollectionsSummary {
+  totalFacturasVencidas: number;
+  montoTotalMora: number;
+  paretoCount: number;
+  paretoMonto: number;
+  agingBuckets: {
+    "1-30": { count: number; monto: number };
+    "31-60": { count: number; monto: number };
+    "61-90": { count: number; monto: number };
+    "+90": { count: number; monto: number };
+  };
+  priorityCounts: {
+    critica: number;
+    alta: number;
+    media: number;
+    baja: number;
+  };
+  disputas: { count: number; monto: number };
+  items: CollectionsItem[];
+}
+
+export async function getCollectionsQueue(): Promise<CollectionsSummary> {
+  const [invoices, clientes] = await Promise.all([
+    calculateReconciledInvoices(),
+    fetchAllRows("clientes"),
+  ]);
+
+  const clientMap = new Map<string, any>();
+  clientes.forEach((c) => clientMap.set(c.id_cliente, c));
+
+  // Filter only overdue invoices with pending balance
+  const overdue = invoices.filter((i) => i.es_vencida && i.saldo_pendiente > 0);
+
+  // Sort descending by saldo_pendiente for Pareto calculation
+  overdue.sort((a, b) => b.saldo_pendiente - a.saldo_pendiente);
+
+  const totalMora = overdue.reduce((acc, i) => acc + i.saldo_pendiente, 0);
+  let accumulated = 0;
+  let paretoCount = 0;
+  const pareto80Set = new Set<string>();
+
+  for (let i = 0; i < overdue.length; i++) {
+    accumulated += overdue[i].saldo_pendiente;
+    pareto80Set.add(overdue[i].id_documento);
+    if (accumulated >= totalMora * 0.8 && paretoCount === 0) {
+      paretoCount = i + 1;
+      break;
+    }
+  }
+
+  const agingBuckets = {
+    "1-30": { count: 0, monto: 0 },
+    "31-60": { count: 0, monto: 0 },
+    "61-90": { count: 0, monto: 0 },
+    "+90": { count: 0, monto: 0 },
+  };
+
+  const priorityCounts = {
+    critica: 0,
+    alta: 0,
+    media: 0,
+    baja: 0,
+  };
+
+  let disputasCount = 0;
+  let disputasMonto = 0;
+
+  const items: CollectionsItem[] = overdue.map((inv) => {
+    const client = clientMap.get(inv.id_cliente) || {};
+    let cat: "1-30" | "31-60" | "61-90" | "+90" = "1-30";
+    if (inv.dias_mora <= 30) cat = "1-30";
+    else if (inv.dias_mora <= 60) cat = "31-60";
+    else if (inv.dias_mora <= 90) cat = "61-90";
+    else cat = "+90";
+
+    agingBuckets[cat].count++;
+    agingBuckets[cat].monto += inv.saldo_pendiente;
+
+    if (inv.en_disputa) {
+      disputasCount++;
+      disputasMonto += inv.saldo_pendiente;
+    }
+
+    const limiteCredito = Number(client.limite_credito || 0);
+    const esVip = limiteCredito >= 5000000;
+
+    // Calculation of Priority Score (1-100) based on Amount + Days overdue + Dispute
+    // ponytail: transparent scoring rule without complex models
+    let montoPoints = 10;
+    if (inv.saldo_pendiente >= 5000000) montoPoints = 50;
+    else if (inv.saldo_pendiente >= 2000000) montoPoints = 40;
+    else if (inv.saldo_pendiente >= 1000000) montoPoints = 30;
+    else if (inv.saldo_pendiente >= 500000) montoPoints = 20;
+
+    let moraPoints = 20;
+    if (inv.dias_mora > 60) moraPoints = 50;
+    else if (inv.dias_mora > 30) moraPoints = 40;
+    else if (inv.dias_mora > 15) moraPoints = 30;
+
+    const penalty = inv.en_disputa ? -25 : 0;
+    const score = Math.max(5, Math.min(100, montoPoints + moraPoints + penalty));
+
+    let nivel: "critica" | "alta" | "media" | "baja" = "baja";
+    if (score >= 80) nivel = "critica";
+    else if (score >= 60) nivel = "alta";
+    else if (score >= 40) nivel = "media";
+
+    priorityCounts[nivel]++;
+
+    return {
+      id_documento: inv.id_documento,
+      id_cliente: inv.id_cliente,
+      razon_social: client.razon_social || "Cliente " + inv.id_cliente,
+      contacto_nombre: client.contacto_nombre || "Sin contacto",
+      contacto_email: client.contacto_email || "",
+      contacto_telefono: client.contacto_telefono || "",
+      ejecutivo_comercial: client.ejecutivo_comercial || "No asignado",
+      segmento: client.segmento || "Estándar",
+      limite_credito: limiteCredito,
+      es_vip: esVip,
+      fecha_emision: inv.fecha_emision,
+      fecha_vencimiento: inv.fecha_vencimiento,
+      monto_total: inv.monto_total,
+      saldo_pendiente: inv.saldo_pendiente,
+      dias_mora: inv.dias_mora,
+      en_disputa: inv.en_disputa,
+      categoria_aging: cat,
+      es_pareto_80: pareto80Set.has(inv.id_documento),
+      ranking_prioridad: 0, // Assigned after sorting by score
+      score_prioridad: score,
+      nivel_prioridad: nivel,
+    };
+  });
+
+  // Sort primarily by priority score descending, secondary by amount descending
+  items.sort((a, b) => {
+    if (b.score_prioridad !== a.score_prioridad) {
+      return b.score_prioridad - a.score_prioridad;
+    }
+    return b.saldo_pendiente - a.saldo_pendiente;
+  });
+
+  items.forEach((item, idx) => {
+    item.ranking_prioridad = idx + 1;
+  });
+
+  return {
+    totalFacturasVencidas: overdue.length,
+    montoTotalMora: totalMora,
+    paretoCount,
+    paretoMonto: Math.round(totalMora * 0.8),
+    agingBuckets,
+    priorityCounts,
+    disputas: { count: disputasCount, monto: disputasMonto },
+    items,
+  };
+}
+
+

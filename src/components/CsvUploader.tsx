@@ -95,14 +95,14 @@ export default function CsvUploader({ onUploadComplete }: { onUploadComplete?: (
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl max-w-2xl w-full mx-auto">
+    <div className="bg-white border border-slate-200/90 rounded-xl p-6 shadow-xs max-w-2xl w-full mx-auto">
       <div className="mb-4">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <UploadCloud className="w-6 h-6 text-cyan-400" />
+        <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+          <UploadCloud className="w-5 h-5 text-slate-700" />
           Carga de Exportación ERP (Juan - TI)
         </h2>
-        <p className="text-sm text-slate-400 mt-1">
-          Arrastra los archivos CSV diarios exportados por el ERP. La carga es idempotente: no duplicará registros.
+        <p className="text-xs text-slate-500 mt-0.5">
+          Arrastra los archivos CSV diarios generados por el ERP. La carga es idempotente: no duplicará registros.
         </p>
       </div>
 
@@ -114,8 +114,8 @@ export default function CsvUploader({ onUploadComplete }: { onUploadComplete?: (
         onClick={() => fileInputRef.current?.click()}
         className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${
           isDragging
-            ? "border-cyan-500 bg-cyan-950/20 scale-[1.01]"
-            : "border-slate-700 hover:border-slate-500 bg-slate-950/50"
+            ? "border-slate-800 bg-slate-50 scale-[1.005]"
+            : "border-slate-300 hover:border-slate-400 bg-slate-50/50"
         }`}
       >
         <input
@@ -127,20 +127,20 @@ export default function CsvUploader({ onUploadComplete }: { onUploadComplete?: (
           onChange={(e) => e.target.files && handleFiles(e.target.files)}
         />
         <div className="flex flex-col items-center justify-center gap-2">
-          <div className="p-3 bg-slate-800/80 rounded-full text-cyan-400">
-            <UploadCloud className="w-8 h-8" />
+          <div className="p-2.5 bg-white rounded-full text-slate-700 border border-slate-200 shadow-2xs">
+            <UploadCloud className="w-6 h-6" />
           </div>
-          <p className="text-sm font-medium text-slate-200">
-            Arrastra aquí tus archivos <span className="text-cyan-400">.csv</span> o haz clic para explorar
+          <p className="text-xs font-semibold text-slate-800">
+            Arrastra aquí tus archivos <span className="font-mono text-slate-900">.csv</span> o haz clic para explorar
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-[11px] text-slate-500">
             Acepta: clientes.csv, facturas.csv, pagos.csv, obligaciones.csv
           </p>
         </div>
       </div>
 
       {/* File status pills */}
-      <div className="grid grid-cols-2 gap-3 mt-4">
+      <div className="grid grid-cols-2 gap-2.5 mt-4">
         {EXPECTED_FILES.map(({ key, label, desc }) => {
           const loaded = !!files[key];
           return (
@@ -148,8 +148,8 @@ export default function CsvUploader({ onUploadComplete }: { onUploadComplete?: (
               key={key}
               className={`p-3 rounded-lg border text-left transition-all ${
                 loaded
-                  ? "bg-emerald-950/30 border-emerald-800/60 text-emerald-200"
-                  : "bg-slate-800/40 border-slate-800 text-slate-400"
+                  ? "bg-emerald-50/80 border-emerald-300 text-emerald-900"
+                  : "bg-slate-50 border-slate-200 text-slate-600"
               }`}
             >
               <div className="flex items-center justify-between">
@@ -158,12 +158,12 @@ export default function CsvUploader({ onUploadComplete }: { onUploadComplete?: (
                   {label}
                 </span>
                 {loaded ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 ) : (
-                  <span className="text-[10px] text-slate-500">Pendiente</span>
+                  <span className="text-[10px] text-slate-400 font-medium">Pendiente</span>
                 )}
               </div>
-              <p className="text-[11px] text-slate-500 mt-1 truncate">{desc}</p>
+              <p className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</p>
             </div>
           );
         })}
@@ -171,20 +171,20 @@ export default function CsvUploader({ onUploadComplete }: { onUploadComplete?: (
 
       {/* Error notification */}
       {error && (
-        <div className="mt-4 p-3 bg-rose-950/40 border border-rose-800 rounded-lg text-rose-300 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Success notification */}
       {results && (
-        <div className="mt-4 p-4 bg-emerald-950/40 border border-emerald-800 rounded-lg text-emerald-200 text-xs space-y-1">
-          <div className="flex items-center gap-2 font-bold text-sm text-emerald-300 mb-1">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-900 text-xs space-y-1">
+          <div className="flex items-center gap-2 font-bold text-xs text-emerald-800 mb-1">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             ¡Ingesta completada con éxito!
           </div>
-          <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] text-slate-300">
+          <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] text-emerald-800">
             {results.clientes !== undefined && <div>• Clientes cargados: {results.clientes.toLocaleString()}</div>}
             {results.facturas !== undefined && <div>• Facturas/NC cargadas: {results.facturas.toLocaleString()}</div>}
             {results.pagos !== undefined && <div>• Pagos recibidos: {results.pagos.toLocaleString()}</div>}
@@ -194,12 +194,12 @@ export default function CsvUploader({ onUploadComplete }: { onUploadComplete?: (
       )}
 
       {/* Action Button */}
-      <div className="mt-5 flex justify-end gap-3">
+      <div className="mt-5 flex justify-end gap-2.5">
         {Object.keys(files).length > 0 && (
           <button
             type="button"
             onClick={() => setFiles({})}
-            className="px-3 py-2 text-xs text-slate-400 hover:text-slate-200 transition"
+            className="px-3 py-2 text-xs text-slate-500 hover:text-slate-800 transition"
           >
             Limpiar selección
           </button>
@@ -208,17 +208,17 @@ export default function CsvUploader({ onUploadComplete }: { onUploadComplete?: (
           type="button"
           disabled={uploading || Object.keys(files).length === 0}
           onClick={handleUpload}
-          className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-600 text-white text-xs font-semibold rounded-lg flex items-center gap-2 shadow-lg transition"
+          className="px-4 py-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-semibold rounded-lg flex items-center gap-2 transition shadow-xs cursor-pointer"
         >
           {uploading ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Procesando e ingestado...
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Procesando datos...
             </>
           ) : (
             <>
               Cargar datos en Supabase
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </>
           )}
         </button>
