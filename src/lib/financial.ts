@@ -46,7 +46,6 @@ export interface ForecastSummary {
   totalObligacionesPendientes: number;
   egresosPorTipo: Record<string, number>;
   dailyForecast: CashForecastPoint[];
-  weeklyForecast: any[];
   hitosCriticos: Array<{
     fecha: string;
     acreedor: string;
@@ -185,7 +184,7 @@ export async function calculateCashForecast(): Promise<ForecastSummary> {
       futureReceivablesByDate[d] = (futureReceivablesByDate[d] || 0) + i.saldo_pendiente;
     });
 
-  // Overdue recovery curve (if Marta recovers overdue debt spread over 45 days)
+  // Overdue recovery curve (assumes 50% overdue recovery spread over 45 days)
   const recoverableOverdue = totalMora - pendingInvoices.filter((i) => i.es_vencida && i.en_disputa).reduce((a, b) => a + b.saldo_pendiente, 0);
   const dailyMoraRecovery = (recoverableOverdue * 0.5) / 45; // 50% recovery over 45 days
 
@@ -254,30 +253,6 @@ export async function calculateCashForecast(): Promise<ForecastSummary> {
     });
   }
 
-  // Weekly Aggregation (Lunes de Finanzas para Carolina)
-  const weeklyForecast: any[] = [];
-  for (let i = 0; i < dailyForecast.length; i += 7) {
-    const chunk = dailyForecast.slice(i, i + 7);
-    const firstDay = chunk[0];
-    const lastDay = chunk[chunk.length - 1];
-    const totalIngresos = chunk.reduce((a, b) => a + b.ingresosBase, 0);
-    const totalEgresos = chunk.reduce((a, b) => a + b.egresos, 0);
-    const minSaldoSemana = Math.min(...chunk.map((c) => c.saldoBase));
-
-    weeklyForecast.push({
-      semanaLabel: `Semana ${Math.floor(i / 7) + 1} (${firstDay.date.slice(5)})`,
-      fechaInicio: firstDay.date,
-      fechaFin: lastDay.date,
-      saldoFinalSemana: lastDay.saldoBase,
-      saldoConMora: lastDay.saldoConCobranzaMora,
-      minSaldoSemana,
-      totalIngresos,
-      totalEgresos,
-      flujoNeto: totalIngresos - totalEgresos,
-      enPeligro: minSaldoSemana < 0,
-    });
-  }
-
   // Critical Outflows (Top 8 sorted by amount)
   const hitosCriticos = pendingObs
     .map((o) => ({
@@ -305,7 +280,6 @@ export async function calculateCashForecast(): Promise<ForecastSummary> {
     totalObligacionesPendientes,
     egresosPorTipo,
     dailyForecast,
-    weeklyForecast,
     hitosCriticos,
   };
 }

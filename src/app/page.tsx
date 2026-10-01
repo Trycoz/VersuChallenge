@@ -1,19 +1,24 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import CarolinaDashboard from "@/components/CarolinaDashboard";
-import MartaDashboard from "@/components/MartaDashboard";
+import CashflowForecast from "@/components/CashflowForecast";
+import CollectionsQueue from "@/components/CollectionsQueue";
 import CsvUploader from "@/components/CsvUploader";
 import LoginForm from "@/components/LoginForm";
 import AccountManagerModal from "@/components/AccountManagerModal";
+import {
+  ForecastSkeleton,
+  CollectionsSkeleton,
+  AuthCheckSkeleton,
+} from "@/components/SkeletonLoaders";
 import { supabaseClient } from "@/lib/supabaseClient";
-import { Loader2, AlertCircle, Settings, LogOut } from "lucide-react";
+import { AlertCircle, Settings, LogOut } from "lucide-react";
 import { ForecastSummary, CollectionsSummary } from "@/lib/financial";
 
-type TabKey = "carolina" | "cobranzas" | "juan";
+type TabKey = "finanzas" | "cobranzas" | "csv";
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<TabKey>("carolina");
+  const [activeTab, setActiveTab] = useState<TabKey>("finanzas");
 
   // Auth session state
   const [sessionUser, setSessionUser] = useState<any | null>(null);
@@ -91,14 +96,9 @@ export default function HomePage() {
     }
   };
 
-  // 1. Initial auth check spinner
+  // 1. Initial auth check skeleton
   if (checkingAuth) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-2">
-        <Loader2 className="w-5 h-5 text-slate-600 animate-spin" />
-        <p className="text-xs text-slate-400">Verificando sesión...</p>
-      </div>
-    );
+    return <AuthCheckSkeleton />;
   }
 
   // 2. Unauthenticated: render Login Form
@@ -151,9 +151,9 @@ export default function HomePage() {
           <nav className="flex space-x-6 overflow-x-auto no-scrollbar">
             <button
               type="button"
-              onClick={() => handleTabChange("carolina")}
+              onClick={() => handleTabChange("finanzas")}
               className={`pb-3 text-sm font-medium transition border-b-2 shrink-0 ${
-                activeTab === "carolina"
+                activeTab === "finanzas"
                   ? "border-slate-900 text-slate-900 font-semibold"
                   : "border-transparent text-slate-500 hover:text-slate-900"
               }`}
@@ -175,9 +175,9 @@ export default function HomePage() {
 
             <button
               type="button"
-              onClick={() => handleTabChange("juan")}
+              onClick={() => handleTabChange("csv")}
               className={`pb-3 text-sm font-medium transition border-b-2 shrink-0 ${
-                activeTab === "juan"
+                activeTab === "csv"
                   ? "border-slate-900 text-slate-900 font-semibold"
                   : "border-transparent text-slate-500 hover:text-slate-900"
               }`}
@@ -224,14 +224,11 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
-        {/* TAB 1: CAROLINA */}
-        {activeTab === "carolina" && (
+        {/* TAB 1: FINANZAS / CASHFLOW */}
+        {activeTab === "finanzas" && (
           <div>
             {loadingForecast ? (
-              <div className="h-96 flex flex-col items-center justify-center gap-2">
-                <Loader2 className="w-5 h-5 text-slate-600 animate-spin" />
-                <p className="text-xs text-slate-400">Cargando proyección...</p>
-              </div>
+              <ForecastSkeleton />
             ) : forecastError ? (
               <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-center max-w-sm mx-auto my-12">
                 <AlertCircle className="w-5 h-5 text-red-600 mx-auto mb-2" />
@@ -245,19 +242,16 @@ export default function HomePage() {
                 </button>
               </div>
             ) : forecast ? (
-              <CarolinaDashboard forecast={forecast} />
+              <CashflowForecast forecast={forecast} />
             ) : null}
           </div>
         )}
 
-        {/* TAB 2: MARTA & RODRIGO */}
+        {/* TAB 2: COBRANZAS */}
         {activeTab === "cobranzas" && (
           <div>
             {loadingCollections ? (
-              <div className="h-96 flex flex-col items-center justify-center gap-2">
-                <Loader2 className="w-5 h-5 text-slate-600 animate-spin" />
-                <p className="text-xs text-slate-400">Calculando cola priorizada y matriz 80/20...</p>
-              </div>
+              <CollectionsSkeleton />
             ) : collectionsError ? (
               <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-center max-w-sm mx-auto my-12">
                 <AlertCircle className="w-5 h-5 text-red-600 mx-auto mb-2" />
@@ -274,13 +268,13 @@ export default function HomePage() {
                 </button>
               </div>
             ) : collections ? (
-              <MartaDashboard data={collections} />
+              <CollectionsQueue data={collections} />
             ) : null}
           </div>
         )}
 
-        {/* TAB 3: JUAN (ERP) */}
-        {activeTab === "juan" && (
+        {/* TAB 3: CARGA CSV */}
+        {activeTab === "csv" && (
           <div className="max-w-xl mx-auto space-y-6">
             <div className="text-center">
               <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">

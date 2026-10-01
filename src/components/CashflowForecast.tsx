@@ -17,11 +17,11 @@ interface Props {
   forecast: ForecastSummary;
 }
 
-export default function CarolinaDashboard({ forecast }: Props) {
+export default function CashflowForecast({ forecast }: Props) {
   const [horizonDays, setHorizonDays] = useState<30 | 60 | 90>(60);
   const [moraRecoveryPct, setMoraRecoveryPct] = useState<number>(40);
 
-  // Currency formatting
+  // Currency formatting helper
   const formatMoney = (val: number, compact = false) => {
     if (compact) {
       const abs = Math.abs(val);
@@ -32,12 +32,12 @@ export default function CarolinaDashboard({ forecast }: Props) {
     return `$${Math.round(val).toLocaleString("es-CL")}`;
   };
 
-  // Filter daily points
+  // Filter daily points by horizon
   const filteredDaily = useMemo(() => {
     return forecast.dailyForecast.slice(0, horizonDays);
   }, [forecast.dailyForecast, horizonDays]);
 
-  // Dynamic simulation with slider
+  // Dynamic sensitivity simulation with recovery slider
   const simulatedData = useMemo(() => {
     const dailyPoints = filteredDaily;
     const totalRecoverableMora = forecast.totalMora - forecast.totalEnDisputa;
@@ -73,7 +73,7 @@ export default function CarolinaDashboard({ forecast }: Props) {
     };
   }, [filteredDaily, moraRecoveryPct, forecast]);
 
-  // Expense categories
+  // Expense categories aggregation
   const expenseCategories = useMemo(() => {
     const total = forecast.totalObligacionesPendientes || 1;
     const labels: Record<string, string> = {
@@ -97,7 +97,7 @@ export default function CarolinaDashboard({ forecast }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* 1. Alerta Ejecutiva Sobria */}
+      {/* 1. Alerta Ejecutiva */}
       <section className="bg-red-50/70 border border-red-200 rounded-lg p-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -167,12 +167,12 @@ export default function CarolinaDashboard({ forecast }: Props) {
               Proyección Temporal de Flujo de Caja
             </h3>
             <p className="text-xs text-slate-500">
-              Línea continua: saldo base • Línea verde: con recuperación de mora
+              Línea continua: saldo base • Línea verde discontinua: con recuperación de cobranza
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Horizonte */}
+            {/* Selector de Horizonte */}
             <div className="inline-flex bg-slate-100 p-0.5 rounded text-xs">
               {[30, 60, 90].map((d) => (
                 <button
@@ -190,10 +190,10 @@ export default function CarolinaDashboard({ forecast }: Props) {
           </div>
         </div>
 
-        {/* Simulador What-If Simple */}
+        {/* Simulador de Sensibilidad */}
         <div className="bg-slate-50 rounded p-3 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
           <div>
-            <span className="font-semibold text-slate-800">Sensibilidad de Cobranza (Marta):</span>
+            <span className="font-semibold text-slate-800">Sensibilidad de Cobranza:</span>
             <span className="text-slate-500 ml-1">
               Recuperar mora ({formatMoney(forecast.totalMora)})
             </span>

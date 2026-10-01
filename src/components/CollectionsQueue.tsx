@@ -14,7 +14,7 @@ interface Props {
   data: CollectionsSummary;
 }
 
-export default function MartaDashboard({ data }: Props) {
+export default function CollectionsQueue({ data }: Props) {
   const [search, setSearch] = useState("");
   const [selectedAging, setSelectedAging] = useState<string>("all");
   const [selectedPriority, setSelectedPriority] = useState<string>("all");
@@ -152,7 +152,7 @@ export default function MartaDashboard({ data }: Props) {
               Cola de Cobranza Priorizada & Asistente Contextual IA
             </h2>
             <p className="text-xs text-slate-600 mt-1 max-w-2xl leading-relaxed">
-              Estrategia 80/20 con <strong>Score de Importancia (1–100)</strong> para atacar facturas de alto impacto financiero. Incorpora las reglas comerciales de Rodrigo: protección de cuentas <strong>VIP</strong>, señalización de facturas en <strong>Disputa</strong> y redacción asistida con IA calibrada por canal.
+              Estrategia 80/20 con <strong>Score de Importancia (1–100)</strong> para atacar facturas de alto impacto financiero. Incorpora reglas de protección para cuentas <strong>VIP</strong>, señalización de facturas en <strong>Disputa</strong> y redacción asistida con IA calibrada por canal.
             </p>
           </div>
 
@@ -248,7 +248,7 @@ export default function MartaDashboard({ data }: Props) {
                   setSelectedPriority(p.id);
                   setPage(1);
                 }}
-                className={`px-2.5 py-1 rounded text-xs transition ${
+                className={`px-2.5 py-1 rounded text-xs transition cursor-pointer ${
                   selectedPriority === p.id
                     ? "bg-slate-900 text-white font-medium"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200/70"
@@ -279,7 +279,7 @@ export default function MartaDashboard({ data }: Props) {
                   setSelectedAging(tab.id);
                   setPage(1);
                 }}
-                className={`px-2 py-0.5 rounded text-xs transition ${
+                className={`px-2 py-0.5 rounded text-xs transition cursor-pointer ${
                   selectedAging === tab.id
                     ? "bg-slate-800 text-white font-medium"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200/70"
@@ -297,7 +297,7 @@ export default function MartaDashboard({ data }: Props) {
                   setHideDisputes(e.target.checked);
                   setPage(1);
                 }}
-                className="rounded border-slate-300 text-slate-900 focus:ring-0"
+                className="rounded border-slate-300 text-slate-900 focus:ring-0 cursor-pointer"
               />
               <span>Sin disputas</span>
             </label>
@@ -316,7 +316,7 @@ export default function MartaDashboard({ data }: Props) {
                   setSortOrder("desc");
                 }
               }}
-              className={`font-medium flex items-center gap-0.5 ${
+              className={`font-medium flex items-center gap-0.5 cursor-pointer ${
                 sortBy === "score" ? "text-slate-900 font-bold" : "text-slate-500"
               }`}
             >
@@ -333,7 +333,7 @@ export default function MartaDashboard({ data }: Props) {
                   setSortOrder("desc");
                 }
               }}
-              className={`font-medium flex items-center gap-0.5 ${
+              className={`font-medium flex items-center gap-0.5 cursor-pointer ${
                 sortBy === "monto" ? "text-slate-900 font-bold" : "text-slate-500"
               }`}
             >
@@ -350,7 +350,7 @@ export default function MartaDashboard({ data }: Props) {
                   setSortOrder("desc");
                 }
               }}
-              className={`font-medium flex items-center gap-0.5 ${
+              className={`font-medium flex items-center gap-0.5 cursor-pointer ${
                 sortBy === "mora" ? "text-slate-900 font-bold" : "text-slate-500"
               }`}
             >
@@ -554,7 +554,7 @@ export default function MartaDashboard({ data }: Props) {
               type="button"
               disabled={page === 1}
               onClick={() => setPage(page - 1)}
-              className="px-2.5 py-1 rounded bg-white border border-slate-200 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+              className="px-2.5 py-1 rounded bg-white border border-slate-200 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 cursor-pointer"
             >
               Anterior
             </button>
@@ -565,7 +565,7 @@ export default function MartaDashboard({ data }: Props) {
               type="button"
               disabled={page === totalPages}
               onClick={() => setPage(page + 1)}
-              className="px-2.5 py-1 rounded bg-white border border-slate-200 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+              className="px-2.5 py-1 rounded bg-white border border-slate-200 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 cursor-pointer"
             >
               Siguiente
             </button>

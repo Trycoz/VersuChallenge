@@ -99,7 +99,7 @@ export default function CsvUploader({ onUploadComplete }: { onUploadComplete?: (
       <div className="mb-4">
         <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
           <UploadCloud className="w-5 h-5 text-slate-700" />
-          Carga de Exportación ERP (Juan - TI)
+          Carga de Exportación ERP
         </h2>
         <p className="text-xs text-slate-500 mt-0.5">
           Arrastra los archivos CSV diarios generados por el ERP. La carga es idempotente: no duplicará registros.

@@ -319,9 +319,9 @@ export default function LoginForm({ onLoginSuccess }: Props) {
                     onChange={(e) => setReqRol(e.target.value)}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-hidden focus:bg-white focus:border-slate-400"
                   >
-                    <option value="cobranzas">Cobranzas (Marta & Rodrigo)</option>
-                    <option value="finanzas">Finanzas (Carolina)</option>
-                    <option value="erp">Operaciones / ERP (Juan)</option>
+                    <option value="cobranzas">Cobranzas</option>
+                    <option value="finanzas">Finanzas</option>
+                    <option value="erp">Operaciones / ERP</option>
                     <option value="admin">Administrador General</option>
                   </select>
                 </div>

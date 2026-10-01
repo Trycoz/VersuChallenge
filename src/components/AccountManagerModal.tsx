@@ -139,11 +139,11 @@ export default function AccountManagerModal({ isOpen, onClose }: Props) {
       case "admin":
         return { label: "Admin General", color: "bg-purple-50 text-purple-800 border-purple-200" };
       case "finanzas":
-        return { label: "Finanzas (Carolina)", color: "bg-blue-50 text-blue-800 border-blue-200" };
+        return { label: "Finanzas", color: "bg-blue-50 text-blue-800 border-blue-200" };
       case "cobranzas":
-        return { label: "Cobranzas (Marta & Rodrigo)", color: "bg-emerald-50 text-emerald-800 border-emerald-200" };
+        return { label: "Cobranzas", color: "bg-emerald-50 text-emerald-800 border-emerald-200" };
       case "erp":
-        return { label: "Operaciones ERP (Juan)", color: "bg-slate-100 text-slate-800 border-slate-200" };
+        return { label: "Operaciones ERP", color: "bg-slate-100 text-slate-800 border-slate-200" };
       default:
         return { label: role, color: "bg-slate-50 text-slate-600 border-slate-200" };
     }
@@ -226,9 +226,23 @@ export default function AccountManagerModal({ isOpen, onClose }: Props) {
           {activeSubTab === "requests" && (
             <div className="space-y-4">
               {loadingRequests ? (
-                <div className="py-8 text-center text-slate-400">
-                  <Loader2 className="w-4 h-4 animate-spin mx-auto mb-1 text-slate-600" />
-                  Cargando solicitudes de acceso...
+                <div className="space-y-3 animate-pulse">
+                  {[...Array(3)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="p-3.5 rounded-lg border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="space-y-1.5 w-1/2">
+                        <div className="h-3.5 w-32 bg-slate-300 rounded" />
+                        <div className="h-2.5 w-48 bg-slate-200 rounded" />
+                        <div className="h-2 w-36 bg-slate-100 rounded" />
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="h-7 w-20 bg-slate-200 rounded" />
+                        <div className="h-7 w-20 bg-slate-200 rounded" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : requests.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 space-y-2">
@@ -345,12 +359,15 @@ export default function AccountManagerModal({ isOpen, onClose }: Props) {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {loadingUsers ? (
-                      <tr>
-                        <td colSpan={5} className="py-8 text-center text-slate-400">
-                          <Loader2 className="w-4 h-4 animate-spin mx-auto mb-1 text-slate-600" />
-                          Cargando usuarios...
-                        </td>
-                      </tr>
+                      [...Array(4)].map((_, i) => (
+                        <tr key={i} className="animate-pulse">
+                          <td className="py-2.5 px-3"><div className="h-3.5 w-24 bg-slate-200 rounded" /></td>
+                          <td className="py-2.5 px-3"><div className="h-3.5 w-36 bg-slate-200 rounded" /></td>
+                          <td className="py-2.5 px-3"><div className="h-5 w-20 bg-slate-100 rounded" /></td>
+                          <td className="py-2.5 px-3"><div className="h-3 w-20 bg-slate-100 rounded" /></td>
+                          <td className="py-2.5 px-3 text-center"><div className="h-6 w-14 bg-slate-100 rounded mx-auto" /></td>
+                        </tr>
+                      ))
                     ) : users.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="py-8 text-center text-slate-400">

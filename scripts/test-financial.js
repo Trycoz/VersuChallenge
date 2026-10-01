@@ -1,36 +1,36 @@
 // Ponytail: ONE runnable check without framework/fixtures
 import assert from "node:assert";
-import fs from "node:fs";
-
-if (fs.existsSync(".env.local")) {
-  process.loadEnvFile(".env.local");
-}
 
 async function runCheck() {
-  const { calculateCashForecast, calculateReconciledInvoices } = await import("../src/lib/financial.ts");
-  console.log("🔍 Verificando lógica del motor financiero...");
+  console.log("🔍 Verificando lógica del motor financiero (/api/forecast & /api/collections)...");
 
-  const invoices = await calculateReconciledInvoices();
-  assert(invoices.length > 5000, "Debe haber más de 5000 facturas");
-  
-  const pending = invoices.filter(i => i.saldo_pendiente > 0);
-  assert(pending.length > 1000, "Debe haber más de 1000 facturas pendientes");
+  const baseUrl = process.env.BASE_URL || "http://localhost:3000";
+  const [forecastRes, collectionsRes] = await Promise.all([
+    fetch(`${baseUrl}/api/forecast`),
+    fetch(`${baseUrl}/api/collections`),
+  ]);
 
-  const overdue = pending.filter(i => i.es_vencida);
-  assert(overdue.length >= 400, "Marta debe tener más de 400 facturas vencidas (mora real)");
+  assert(forecastRes.ok, "API /api/forecast debe responder 200 OK");
+  assert(collectionsRes.ok, "API /api/collections debe responder 200 OK");
 
-  const forecast = await calculateCashForecast();
-  assert.strictEqual(forecast.saldoInicial, 270000000, "Saldo inicial debe ser 270M");
+  const forecast = await forecastRes.json();
+  const collections = await collectionsRes.json();
+
+  assert.strictEqual(forecast.saldoInicial, 270000000, "Saldo inicial debe ser $270.000.000");
   assert(forecast.runwayDias > 0 && forecast.runwayDias <= 60, "Runway debe estar entre 0 y 60 días");
   assert(forecast.fechaQuiebre === "2026-10-29", `Fecha quiebre esperada 2026-10-29, obtenida: ${forecast.fechaQuiebre}`);
 
+  assert(collections.totalFacturasVencidas >= 400, "Debe haber más de 400 facturas vencidas");
+  assert(collections.priorityCounts.critica > 0, "Debe haber facturas con prioridad crítica");
+  assert(collections.paretoCount > 0, "Debe calcular el foco 80/20 (Pareto)");
+
   console.log("✅ Todos los checks del motor financiero pasaron exitosamente.");
-  console.log(`- Facturas pendientes: ${pending.length}`);
-  console.log(`- Facturas vencidas (Marta): ${overdue.length}`);
+  console.log(`- Facturas vencidas en mora: ${collections.totalFacturasVencidas}`);
+  console.log(`- Cuentas críticas (Score >= 80): ${collections.priorityCounts.critica}`);
   console.log(`- Fecha de quiebre proyectada: ${forecast.fechaQuiebre} (${forecast.runwayDias} días de runway)`);
 }
 
 runCheck().catch(err => {
-  console.error("❌ Falló la verificación:", err);
+  console.error("❌ Falló la verificación:", err.message);
   process.exit(1);
 });

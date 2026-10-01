@@ -22,16 +22,16 @@ function getDeterministicFallback(data: DraftRequest): { draft: string; tone: st
     : "Estimado cliente";
 
   if (data.en_disputa) {
-    const tone = "Diplomático / Revisión de Factura (Regla Rodrigo)";
+    const tone = "Diplomático / Revisión de Factura (Disputa Comercial)";
     if (data.canal === "whatsapp") {
       return {
         tone,
-        draft: `Hola ${contacto}, te saluda Marta del equipo de administración de Nortia Supply. Nos comunicamos respecto a la factura ${data.id_documento} por ${montoFormatted}. Tenemos registrado un reclamo/observación pendiente con su cuenta y queremos asegurarnos de revisarla juntos con Rodrigo de Comercial antes de cualquier gestión de pago. ¿Tienes 5 minutos para coordinar? Quedo atenta.`,
+        draft: `Hola ${contacto}, te saludamos del equipo de administración de Nortia Supply. Nos comunicamos respecto a la factura ${data.id_documento} por ${montoFormatted}. Tenemos registrado un reclamo/observación pendiente con su cuenta y queremos asegurarnos de revisarla juntos con el equipo comercial antes de cualquier gestión de pago. ¿Tienes 5 minutos para coordinar? Quedo atenta.`,
       };
     }
     return {
       tone,
-      draft: `Estimado/a ${contacto},\n\nEsperando que se encuentre muy bien, le escribe Marta de Nortia Supply.\n\nNos ponemos en contacto en relación con la factura ${data.id_documento} emitida a ${data.cliente_nombre} por un monto de ${montoFormatted}.\n\nTenemos constancia de que este documento presenta una observación o disputa en curso. Para nosotros su relación comercial es prioritaria y queremos asegurarnos de resolver cualquier diferencia antes de avanzar con el proceso regular de cobro. Nuestro equipo comercial ya está al tanto para coordinar una pronta solución.\n\nQuedo a su disposición para coordinar los detalles que estime pertinentes.\n\nAtentamente,\nEquipo de Administración y Cobranzas\nNortia Supply`,
+      draft: `Estimado/a ${contacto},\n\nEsperando que se encuentre muy bien, le escribe el equipo de cobranzas de Nortia Supply.\n\nNos ponemos en contacto en relación con la factura ${data.id_documento} emitida a ${data.cliente_nombre} por un monto de ${montoFormatted}.\n\nTenemos constancia de que este documento presenta una observación o disputa en curso. Para nosotros su relación comercial es prioritaria y queremos asegurarnos de resolver cualquier diferencia antes de avanzar con el proceso regular de cobro. Nuestro equipo comercial ya está al tanto para coordinar una pronta solución.\n\nQuedo a su disposición para coordinar los detalles que estime pertinentes.\n\nAtentamente,\nEquipo de Administración y Cobranzas\nNortia Supply`,
     };
   }
 
@@ -40,7 +40,7 @@ function getDeterministicFallback(data: DraftRequest): { draft: string; tone: st
     if (data.canal === "whatsapp") {
       return {
         tone,
-        draft: `Hola ${contacto}, gusto en saludarte. Te escribe Marta de Nortia Supply. Quería hacer una consulta administrativa breve sobre la factura ${data.id_documento} por ${montoFormatted}, que venció hace ${data.dias_mora} días. Como ${data.cliente_nombre} es una de nuestras cuentas estratégicas, queríamos confirmar si necesitan que les reenviemos el documento o si ya tienen programada la fecha de transferencia. ¡Muchas gracias!`,
+        draft: `Hola ${contacto}, gusto en saludarte. Te escribo de parte del equipo de cuentas de Nortia Supply. Quería hacer una consulta administrativa breve sobre la factura ${data.id_documento} por ${montoFormatted}, que venció hace ${data.dias_mora} días. Como ${data.cliente_nombre} es una de nuestras cuentas estratégicas, queríamos confirmar si necesitan que les reenviemos el documento o si ya tienen programada la fecha de transferencia. ¡Muchas gracias!`,
       };
     }
     return {
@@ -54,7 +54,7 @@ function getDeterministicFallback(data: DraftRequest): { draft: string; tone: st
   if (data.canal === "whatsapp") {
     return {
       tone,
-      draft: `Estimado/a ${contacto}, le saluda Marta de cobranzas de Nortia Supply. Nos comunicamos para solicitar la regularización de la factura vencida ${data.id_documento} por ${montoFormatted} (${data.dias_mora} días de atraso). Por favor enviar comprobante de transferencia a este número o indicarnos cuándo queda regularizado el saldo hoy. Saludos.`,
+      draft: `Estimado/a ${contacto}, le saluda el equipo de cobranzas de Nortia Supply. Nos comunicamos para solicitar la regularización de la factura vencida ${data.id_documento} por ${montoFormatted} (${data.dias_mora} días de atraso). Por favor enviar comprobante de transferencia a este número o indicarnos cuándo queda regularizado el saldo hoy. Saludos.`,
     };
   }
 
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
         draft: fallback.draft,
         tone: fallback.tone,
         source: "fallback",
-        note: "Generado mediante reglas comerciales deterministas de Rodrigo (sin API Key externa).",
+        note: "Generado mediante reglas comerciales deterministas (sin API Key externa).",
       });
     }
 
@@ -94,7 +94,7 @@ Información del cliente y factura:
 - ¿Está en disputa/reclamo?: ${data.en_disputa ? "SÍ (el cliente reclamó la factura por error)" : "NO"}
 - ¿Es cliente VIP/Cuenta clave?: ${data.es_vip ? "SÍ (cuenta muy grande, riesgo de perderla si somos agresivos)" : "NO"}
 
-Reglas de tono impuestas por Rodrigo (Gerente Comercial):
+Reglas de tono comercial:
 1. Si está en disputa: Sé muy diplomático, empático y pide revisar el caso juntos antes de cobrar. Cero agresividad.
 2. Si es cliente VIP: Tono consultivo y de servicio. Pregunta amablemente si necesitan reenviar la factura o la fecha de programación.
 3. Si es cliente estándar con mora prolongada: Tono formal, claro y directo solicitando la regularización.

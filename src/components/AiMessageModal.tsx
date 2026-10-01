@@ -10,7 +10,6 @@ import {
   Mail,
   MessageSquare,
   AlertTriangle,
-  Loader2,
   RefreshCw,
 } from "lucide-react";
 import { CollectionsItem } from "@/lib/financial";
@@ -199,9 +198,12 @@ export default function AiMessageModal({ item, onClose }: Props) {
           </div>
 
           {loading ? (
-            <div className="h-44 flex flex-col items-center justify-center gap-2 bg-slate-50 rounded border border-slate-200">
-              <Loader2 className="w-5 h-5 text-slate-600 animate-spin" />
-              <p className="text-slate-400 text-xs">Redactando mensaje contextual...</p>
+            <div className="h-44 p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2.5 animate-pulse">
+              <div className="h-3 w-1/3 bg-slate-200 rounded" />
+              <div className="h-3 w-4/5 bg-slate-200 rounded" />
+              <div className="h-3 w-3/4 bg-slate-200 rounded" />
+              <div className="h-3 w-2/3 bg-slate-200 rounded" />
+              <div className="h-3 w-1/2 bg-slate-100 rounded" />
             </div>
           ) : (
             <textarea
@@ -214,7 +216,7 @@ export default function AiMessageModal({ item, onClose }: Props) {
 
           {item.en_disputa && (
             <p className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded border border-amber-200/80">
-              ⚠️ <strong>Regla Comercial de Rodrigo:</strong> Esta cuenta tiene una factura en disputa. El mensaje evita presiones de pago y propone coordinar la revisión del documento.
+              ⚠️ <strong>Regla de Disputa Comercial:</strong> Esta cuenta tiene una factura en disputa. El mensaje evita presiones de pago y propone coordinar la revisión del documento.
             </p>
           )}
         </div>
