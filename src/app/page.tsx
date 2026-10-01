@@ -4,7 +4,10 @@ import React, { useState, useEffect } from "react";
 import CarolinaDashboard from "@/components/CarolinaDashboard";
 import MartaDashboard from "@/components/MartaDashboard";
 import CsvUploader from "@/components/CsvUploader";
-import { Loader2, AlertCircle } from "lucide-react";
+import LoginForm from "@/components/LoginForm";
+import AccountManagerModal from "@/components/AccountManagerModal";
+import { supabaseClient } from "@/lib/supabaseClient";
+import { Loader2, AlertCircle, Settings, LogOut } from "lucide-react";
 import { ForecastSummary, CollectionsSummary } from "@/lib/financial";
 
 type TabKey = "carolina" | "cobranzas" | "juan";
@@ -12,6 +15,12 @@ type TabKey = "carolina" | "cobranzas" | "juan";
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<TabKey>("carolina");
 
+  // Auth session state
+  const [sessionUser, setSessionUser] = useState<any | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [showAccountManager, setShowAccountManager] = useState(false);
+
+  // Financial data state
   const [forecast, setForecast] = useState<ForecastSummary | null>(null);
   const [loadingForecast, setLoadingForecast] = useState(true);
   const [forecastError, setForecastError] = useState<string | null>(null);
@@ -51,8 +60,28 @@ export default function HomePage() {
     }
   };
 
+  // Check Supabase Auth session on mount
   useEffect(() => {
-    fetchForecast();
+    supabaseClient.auth.getSession().then(({ data }) => {
+      const user = data.session?.user || null;
+      setSessionUser(user);
+      setCheckingAuth(false);
+      if (user) {
+        fetchForecast();
+      }
+    });
+
+    const { data: authListener } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user || null;
+      setSessionUser(user);
+      if (user && !forecast) {
+        fetchForecast();
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   const handleTabChange = (tab: TabKey) => {
@@ -62,16 +91,60 @@ export default function HomePage() {
     }
   };
 
+  // 1. Initial auth check spinner
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-2">
+        <Loader2 className="w-5 h-5 text-slate-600 animate-spin" />
+        <p className="text-xs text-slate-400">Verificando sesión...</p>
+      </div>
+    );
+  }
+
+  // 2. Unauthenticated: render Login Form
+  if (!sessionUser) {
+    return (
+      <LoginForm
+        onLoginSuccess={(user) => {
+          setSessionUser(user);
+          fetchForecast();
+        }}
+      />
+    );
+  }
+
+  // 3. Authenticated: render main app
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
       {/* Clean, uncluttered header */}
       <header className="border-b border-slate-200 bg-white sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 pt-4 pb-0 flex flex-col md:flex-row md:items-end justify-between gap-4">
           {/* Logo / Title */}
-          <div className="pb-3">
+          <div className="pb-3 flex items-center justify-between w-full md:w-auto">
             <h1 className="font-bold text-base tracking-wider text-slate-900 uppercase">
               Nortia Supply
             </h1>
+
+            {/* Mobile user profile */}
+            <div className="flex md:hidden items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAccountManager(true)}
+                className="p-1.5 text-slate-600 bg-slate-100 rounded-md"
+              >
+                <Settings className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await supabaseClient.auth.signOut();
+                  setSessionUser(null);
+                }}
+                className="p-1.5 text-slate-400 hover:text-slate-700"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Clean text tabs */}
@@ -85,7 +158,7 @@ export default function HomePage() {
                   : "border-transparent text-slate-500 hover:text-slate-900"
               }`}
             >
-              Carolina — Finanzas
+              Finanzas
             </button>
 
             <button
@@ -97,7 +170,7 @@ export default function HomePage() {
                   : "border-transparent text-slate-500 hover:text-slate-900"
               }`}
             >
-              Marta & Rodrigo — Cobranzas
+              Cobranzas
             </button>
 
             <button
@@ -109,9 +182,43 @@ export default function HomePage() {
                   : "border-transparent text-slate-500 hover:text-slate-900"
               }`}
             >
-              Juan — ERP
+              Carga de CSVs
             </button>
           </nav>
+
+          {/* User profile & actions (Desktop) */}
+          <div className="hidden md:flex items-center gap-3 pb-3">
+            <button
+              type="button"
+              onClick={() => setShowAccountManager(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-medium transition cursor-pointer"
+              title="Administrar cuentas de acceso"
+            >
+              <Settings className="w-3.5 h-3.5 text-slate-600" />
+              <span>Cuentas</span>
+            </button>
+
+            <div className="text-right">
+              <span className="text-xs font-semibold text-slate-900 block">
+                {sessionUser.user_metadata?.name || sessionUser.email}
+              </span>
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider block">
+                {sessionUser.user_metadata?.role || "Usuario"}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={async () => {
+                await supabaseClient.auth.signOut();
+                setSessionUser(null);
+              }}
+              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition cursor-pointer"
+              title="Cerrar sesión"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -193,10 +300,11 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-400">
-        Nortia Supply
-      </footer>
+      {/* Account Manager Modal */}
+      <AccountManagerModal
+        isOpen={showAccountManager}
+        onClose={() => setShowAccountManager(false)}
+      />
     </div>
   );
 }

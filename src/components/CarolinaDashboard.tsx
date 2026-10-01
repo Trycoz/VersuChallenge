@@ -19,7 +19,6 @@ interface Props {
 
 export default function CarolinaDashboard({ forecast }: Props) {
   const [horizonDays, setHorizonDays] = useState<30 | 60 | 90>(60);
-  const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
   const [moraRecoveryPct, setMoraRecoveryPct] = useState<number>(40);
 
   // Currency formatting
@@ -37,12 +36,6 @@ export default function CarolinaDashboard({ forecast }: Props) {
   const filteredDaily = useMemo(() => {
     return forecast.dailyForecast.slice(0, horizonDays);
   }, [forecast.dailyForecast, horizonDays]);
-
-  // Filter weekly points
-  const filteredWeekly = useMemo(() => {
-    const weeksCount = Math.ceil(horizonDays / 7);
-    return forecast.weeklyForecast.slice(0, weeksCount);
-  }, [forecast.weeklyForecast, horizonDays]);
 
   // Dynamic simulation with slider
   const simulatedData = useMemo(() => {
@@ -179,28 +172,6 @@ export default function CarolinaDashboard({ forecast }: Props) {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Modo Diario / Semanal */}
-            <div className="inline-flex bg-slate-100 p-0.5 rounded text-xs">
-              <button
-                type="button"
-                onClick={() => setViewMode("daily")}
-                className={`px-2.5 py-1 rounded transition ${
-                  viewMode === "daily" ? "bg-white font-medium text-slate-900 shadow-xs" : "text-slate-500"
-                }`}
-              >
-                Diario
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("weekly")}
-                className={`px-2.5 py-1 rounded transition ${
-                  viewMode === "weekly" ? "bg-white font-medium text-slate-900 shadow-xs" : "text-slate-500"
-                }`}
-              >
-                Semanal
-              </button>
-            </div>
-
             {/* Horizonte */}
             <div className="inline-flex bg-slate-100 p-0.5 rounded text-xs">
               {[30, 60, 90].map((d) => (
@@ -208,11 +179,11 @@ export default function CarolinaDashboard({ forecast }: Props) {
                   key={d}
                   type="button"
                   onClick={() => setHorizonDays(d as any)}
-                  className={`px-2 py-1 rounded transition ${
-                    horizonDays === d ? "bg-white font-medium text-slate-900 shadow-xs" : "text-slate-500"
+                  className={`px-2.5 py-1 rounded transition cursor-pointer ${
+                    horizonDays === d ? "bg-white font-medium text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"
                   }`}
                 >
-                  {d}d
+                  {d} días
                 </button>
               ))}
             </div>
@@ -253,15 +224,15 @@ export default function CarolinaDashboard({ forecast }: Props) {
         <div className="h-72 w-full pt-1">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
-              data={viewMode === "daily" ? simulatedData.points : filteredWeekly}
+              data={simulatedData.points}
               margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis
-                dataKey={viewMode === "daily" ? "date" : "semanaLabel"}
+                dataKey="date"
                 stroke="#94a3b8"
                 tick={{ fontSize: 10, fill: "#64748b" }}
-                tickFormatter={(val) => (viewMode === "daily" ? val.slice(5) : val.slice(0, 10))}
+                tickFormatter={(val) => val.slice(5)}
               />
               <YAxis
                 stroke="#94a3b8"
@@ -276,18 +247,16 @@ export default function CarolinaDashboard({ forecast }: Props) {
                       <div className="bg-white border border-slate-200 p-2.5 rounded shadow-sm text-xs space-y-1">
                         <p className="font-bold text-slate-900 border-b border-slate-100 pb-0.5">{label}</p>
                         <p className="text-slate-900">
-                          Saldo Base: <strong>{formatMoney(viewMode === "daily" ? data.saldoBase : data.saldoFinalSemana)}</strong>
+                          Saldo Base: <strong>{formatMoney(data.saldoBase)}</strong>
                         </p>
-                        {viewMode === "daily" && (
-                          <p className="text-emerald-700">
-                            Saldo con Cobranza: <strong>{formatMoney(data.saldoSimulado)}</strong>
-                          </p>
-                        )}
+                        <p className="text-emerald-700">
+                          Saldo con Cobranza: <strong>{formatMoney(data.saldoSimulado)}</strong>
+                        </p>
                         <p className="text-slate-500">
-                          Ingresos: +{formatMoney(viewMode === "daily" ? data.ingresosBase : data.totalIngresos)}
+                          Ingresos: +{formatMoney(data.ingresosBase)}
                         </p>
                         <p className="text-red-600">
-                          Egresos: -{formatMoney(viewMode === "daily" ? data.egresos : data.totalEgresos)}
+                          Egresos: -{formatMoney(data.egresos)}
                         </p>
                         {data.hito && (
                           <p className="text-amber-800 text-[11px] pt-1 border-t border-slate-100">{data.hito}</p>
@@ -301,23 +270,21 @@ export default function CarolinaDashboard({ forecast }: Props) {
               <ReferenceLine y={0} stroke="#dc2626" strokeWidth={1} strokeDasharray="3 3" />
               <Area
                 type="monotone"
-                dataKey={viewMode === "daily" ? "saldoBase" : "saldoFinalSemana"}
+                dataKey="saldoBase"
                 stroke="#0f172a"
                 strokeWidth={1.5}
                 fill="transparent"
                 name="Saldo Base"
               />
-              {viewMode === "daily" && (
-                <Area
-                  type="monotone"
-                  dataKey="saldoSimulado"
-                  stroke="#059669"
-                  strokeWidth={1.5}
-                  strokeDasharray="3 3"
-                  fill="transparent"
-                  name="Simulado con Cobranza"
-                />
-              )}
+              <Area
+                type="monotone"
+                dataKey="saldoSimulado"
+                stroke="#059669"
+                strokeWidth={1.5}
+                strokeDasharray="3 3"
+                fill="transparent"
+                name="Simulado con Cobranza"
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>

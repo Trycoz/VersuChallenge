@@ -146,7 +146,7 @@ export default function MartaDashboard({ data }: Props) {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              Estrategia Unificada (Marta & Rodrigo)
+              Estrategia de Cobranza
             </span>
             <h2 className="text-lg font-bold text-slate-900 mt-0.5">
               Cola de Cobranza Priorizada & Asistente Contextual IA

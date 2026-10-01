@@ -68,3 +68,16 @@ ALTER TABLE clientes DISABLE ROW LEVEL SECURITY;
 ALTER TABLE facturas DISABLE ROW LEVEL SECURITY;
 ALTER TABLE pagos DISABLE ROW LEVEL SECURITY;
 ALTER TABLE obligaciones DISABLE ROW LEVEL SECURITY;
+
+-- 5. Tabla de Solicitudes de Acceso
+CREATE TABLE IF NOT EXISTS solicitudes_acceso (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT NOT NULL UNIQUE,
+  nombre TEXT NOT NULL,
+  rol_solicitado TEXT NOT NULL DEFAULT 'cobranzas',
+  motivo TEXT,
+  estado TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'aprobada', 'rechazada')),
+  creado_el TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE solicitudes_acceso DISABLE ROW LEVEL SECURITY;
+
