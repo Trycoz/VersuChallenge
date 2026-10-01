@@ -1,0 +1,65 @@
+name: Monitor Healthz & Telegram Alert
+
+on:
+  schedule:
+    # Se ejecuta automáticamente cada 5 minutos
+    - cron: '*/5 * * * *'
+  # Permite ejecutarlo manualmente desde GitHub (Actions -> Run workflow)
+  workflow_dispatch:
+
+jobs:
+  healthcheck:
+    name: Ping Healthz
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Consultar endpoint /api/healthz
+        id: ping
+        env:
+          # Puedes configurar SITE_URL en Settings > Secrets and variables > Actions > Variables
+          TARGET_URL: ${{ vars.SITE_URL || 'https://versuchallenge.vercel.app' }}
+        run: |
+          URL="${TARGET_URL%/}/api/healthz"
+          echo "Consultando: $URL"
+
+          # Timeout de 10 segundos
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$URL" || echo "000")
+          echo "status=$HTTP_STATUS" >> $GITHUB_OUTPUT
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "❌ El sitio no respondió 200 OK. Código obtenido: $HTTP_STATUS"
+            exit 1
+          fi
+          echo "✅ Sitio funcionando correctamente (HTTP 200 OK)"
+
+      - name: Enviar alerta a Telegram en caso de fallo
+        if: failure()
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          HTTP_STATUS: ${{ steps.ping.outputs.status || '000' }}
+          URL: ${{ steps.ping.outputs.url }}
+        run: |
+          if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
+            echo "⚠️ Advertencia: TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID no están configurados en los secrets del repositorio."
+            exit 1
+          fi
+
+          TEXT=$(cat <<EOF
+🚨 *ALERTA: Nortia Supply está CAÍDO*
+
+• *Endpoint:* $URL
+• *Código HTTP:* $HTTP_STATUS
+• *Hora:* $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+
+_Verifica el estado de Vercel o de la base de datos Supabase._
+EOF
+)
+
+          curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+            --data-urlencode "chat_id=$CHAT_ID" \
+            --data-urlencode "text=$TEXT" \
+            --data-urlencode "parse_mode=Markdown" > /dev/null
+
+          echo "Notificación enviada a Telegram."
