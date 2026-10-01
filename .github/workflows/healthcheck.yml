@@ -46,20 +46,12 @@ jobs:
             exit 1
           fi
 
-          TEXT=$(cat <<EOF
-🚨 *ALERTA: Nortia Supply está CAÍDO*
-
-• *Endpoint:* $URL
-• *Código HTTP:* $HTTP_STATUS
-• *Hora:* $(date -u '+%Y-%m-%d %H:%M:%S UTC')
-
-_Verifica el estado de Vercel o de la base de datos Supabase._
-EOF
-)
+          TIME=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          MSG=$(printf "🚨 *ALERTA: Nortia Supply está CAÍDO*\n\n• *Endpoint:* %s\n• *Código HTTP:* %s\n• *Hora:* %s\n\n_Verifica Vercel o la base de datos Supabase._" "$URL" "$HTTP_STATUS" "$TIME")
 
           curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
-            --data-urlencode "chat_id=$CHAT_ID" \
-            --data-urlencode "text=$TEXT" \
-            --data-urlencode "parse_mode=Markdown" > /dev/null
+            -d "chat_id=$CHAT_ID" \
+            --data-urlencode "text=$MSG" \
+            -d "parse_mode=Markdown" > /dev/null
 
           echo "Notificación enviada a Telegram."
