@@ -19,17 +19,35 @@ interface Props {
   onClose: () => void;
 }
 
+interface ChannelDraft {
+  draft: string;
+  tone: string;
+  source: "ai" | "fallback";
+  modelName: string;
+}
+
 export default function AiMessageModal({ item, onClose }: Props) {
   const [canal, setCanal] = useState<"whatsapp" | "email">("whatsapp");
-  const [draft, setDraft] = useState("");
-  const [tone, setTone] = useState("");
-  const [source, setSource] = useState<"ai" | "fallback">("fallback");
-  const [modelName, setModelName] = useState("");
+  const [channelDrafts, setChannelDrafts] = useState<{
+    whatsapp: ChannelDraft | null;
+    email: ChannelDraft | null;
+  }>({
+    whatsapp: null,
+    email: null,
+  });
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const fetchDraft = async (selectedCanal: "whatsapp" | "email") => {
+  // Reset cache if the inspected invoice changes
+  useEffect(() => {
+    setChannelDrafts({ whatsapp: null, email: null });
+    setCanal("whatsapp");
+  }, [item?.id_documento]);
+
+  const fetchDraft = async (selectedCanal: "whatsapp" | "email", force = false) => {
     if (!item) return;
+    if (!force && channelDrafts[selectedCanal]) return;
+
     setLoading(true);
     try {
       const res = await fetch("/api/ai/draft", {
@@ -50,10 +68,15 @@ export default function AiMessageModal({ item, onClose }: Props) {
       });
 
       const data = await res.json();
-      setDraft(data.draft || "");
-      setTone(data.tone || "Estándar");
-      setSource(data.source || "fallback");
-      setModelName(data.model || "");
+      setChannelDrafts((prev) => ({
+        ...prev,
+        [selectedCanal]: {
+          draft: data.draft || "",
+          tone: data.tone || "Estándar",
+          source: data.source || "fallback",
+          modelName: data.model || "",
+        },
+      }));
     } catch (err) {
       console.error("Error al obtener borrador:", err);
     } finally {
@@ -61,14 +84,30 @@ export default function AiMessageModal({ item, onClose }: Props) {
     }
   };
 
+  // Fetch draft only if not already cached for the active channel
   useEffect(() => {
-    if (item) {
+    if (item && !channelDrafts[canal]) {
       setCopied(false);
       fetchDraft(canal);
     }
-  }, [item, canal]);
+  }, [item, canal, channelDrafts]);
 
   if (!item) return null;
+
+  const current = channelDrafts[canal];
+  const draft = current?.draft ?? "";
+  const tone = current?.tone ?? (loading ? "Calibrando..." : "Estándar");
+  const source = current?.source ?? "fallback";
+  const modelName = current?.modelName ?? "";
+
+  const handleDraftChange = (newText: string) => {
+    setChannelDrafts((prev) => ({
+      ...prev,
+      [canal]: prev[canal]
+        ? { ...prev[canal]!, draft: newText }
+        : { draft: newText, tone: "Manual", source: "fallback", modelName: "" },
+    }));
+  };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(draft);
@@ -187,10 +226,10 @@ export default function AiMessageModal({ item, onClose }: Props) {
               </span>
               <button
                 type="button"
-                onClick={() => fetchDraft(canal)}
+                onClick={() => fetchDraft(canal, true)}
                 disabled={loading}
                 title="Regenerar mensaje"
-                className="p-1 hover:text-slate-900"
+                className="p-1 hover:text-slate-900 cursor-pointer"
               >
                 <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
               </button>
@@ -208,7 +247,7 @@ export default function AiMessageModal({ item, onClose }: Props) {
           ) : (
             <textarea
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(e) => handleDraftChange(e.target.value)}
               rows={8}
               className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 leading-relaxed font-sans text-xs focus:outline-hidden focus:bg-white focus:border-slate-400 resize-none"
             />

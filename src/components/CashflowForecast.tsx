@@ -20,6 +20,7 @@ interface Props {
 export default function CashflowForecast({ forecast }: Props) {
   const [horizonDays, setHorizonDays] = useState<30 | 60 | 90>(60);
   const [moraRecoveryPct, setMoraRecoveryPct] = useState<number>(40);
+  const [includeDisputes, setIncludeDisputes] = useState<boolean>(false);
 
   // Currency formatting helper
   const formatMoney = (val: number, compact = false) => {
@@ -37,10 +38,13 @@ export default function CashflowForecast({ forecast }: Props) {
     return forecast.dailyForecast.slice(0, horizonDays);
   }, [forecast.dailyForecast, horizonDays]);
 
-  // Dynamic sensitivity simulation with recovery slider
+  // Dynamic sensitivity simulation with recovery slider & disputes toggle
   const simulatedData = useMemo(() => {
     const dailyPoints = filteredDaily;
-    const totalRecoverableMora = forecast.totalMora - forecast.totalEnDisputa;
+    const baseMora = includeDisputes
+      ? forecast.totalMora
+      : Math.max(0, forecast.totalMora - forecast.totalEnDisputa);
+    const totalRecoverableMora = baseMora;
     const additionalDailyCash = (totalRecoverableMora * (moraRecoveryPct / 100)) / 45;
 
     let runningSimCash = forecast.saldoInicial;
@@ -70,8 +74,36 @@ export default function CashflowForecast({ forecast }: Props) {
       simRunway,
       simQuiebre,
       simMinCash,
+      totalRecoverableMora,
     };
-  }, [filteredDaily, moraRecoveryPct, forecast]);
+  }, [filteredDaily, moraRecoveryPct, includeDisputes, forecast]);
+
+  // Dynamic KPIs aggregated for the selected horizon (30, 60, or 90 days)
+  const horizonMetrics = useMemo(() => {
+    const slice = filteredDaily;
+    const obligaciones = slice.reduce((sum, p) => sum + p.egresos, 0);
+    const ingresosFuturos = slice.reduce((sum, p) => sum + p.ingresosBase, 0);
+
+    // Mora considerada según el toggle de disputas
+    const moraConsiderada = includeDisputes
+      ? forecast.totalMora
+      : Math.max(0, forecast.totalMora - forecast.totalEnDisputa);
+
+    const totalCxC = moraConsiderada + ingresosFuturos;
+    const brecha = forecast.saldoInicial + totalCxC - obligaciones;
+    const saldoBaseFinal = slice[slice.length - 1]?.saldoBase ?? forecast.saldoInicial;
+    const saldoSimuladoFinal = simulatedData.points[simulatedData.points.length - 1]?.saldoSimulado ?? forecast.saldoInicial;
+
+    return {
+      obligaciones,
+      ingresosFuturos,
+      moraConsiderada,
+      totalCxC,
+      brecha,
+      saldoBaseFinal,
+      saldoSimuladoFinal,
+    };
+  }, [filteredDaily, forecast, simulatedData, includeDisputes]);
 
   // Expense categories aggregation
   const expenseCategories = useMemo(() => {
@@ -120,42 +152,83 @@ export default function CashflowForecast({ forecast }: Props) {
         </div>
       </section>
 
-      {/* 2. Cuatro Hero KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-slate-200 rounded-lg p-4">
-          <span className="text-xs text-slate-500 font-medium">Saldo en Banco</span>
-          <p className="text-2xl font-bold text-slate-900 mt-1">
-            {formatMoney(forecast.saldoInicial)}
-          </p>
-          <span className="text-[11px] text-slate-400 mt-1 block">Al corte 27-sep-2026</span>
-        </div>
+      {/* 2. Cuatro Hero KPIs Adaptados al Horizonte */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+              Métricas Clave ({horizonDays} días)
+            </span>
+            <p className="text-[11px] text-slate-500">
+              Proyección acumulada desde el corte hasta el {filteredDaily[filteredDaily.length - 1]?.date || "horizonte"}
+            </p>
+          </div>
 
-        <div className="bg-white border border-slate-200 rounded-lg p-4">
-          <span className="text-xs text-slate-500 font-medium">Cuentas por Cobrar</span>
-          <p className="text-2xl font-bold text-slate-900 mt-1">
-            {formatMoney(forecast.totalCuentasPorCobrar)}
-          </p>
-          <div className="text-[11px] text-slate-500 mt-1 flex gap-2">
-            <span className="text-amber-700 font-medium">{formatMoney(forecast.totalMora, true)} mora</span>
-            <span>•</span>
-            <span>{formatMoney(forecast.totalFuturo, true)} al día</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 font-medium">Horizonte:</span>
+            <div className="inline-flex bg-slate-100 p-0.5 rounded text-xs">
+              {[30, 60, 90].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setHorizonDays(d as any)}
+                  className={`px-3 py-1 rounded transition cursor-pointer ${horizonDays === d
+                      ? "bg-white font-semibold text-slate-900 shadow-xs"
+                      : "text-slate-500 hover:text-slate-900"
+                    }`}
+                >
+                  {d} días
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-lg p-4">
-          <span className="text-xs text-slate-500 font-medium">Obligaciones (3 meses)</span>
-          <p className="text-2xl font-bold text-slate-900 mt-1">
-            {formatMoney(forecast.totalObligacionesPendientes)}
-          </p>
-          <span className="text-[11px] text-slate-400 mt-1 block">Proveedores, crédito y sueldos</span>
-        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white border border-slate-200 rounded-lg p-4">
+            <span className="text-xs text-slate-500 font-medium">Saldo en Banco (Inicial)</span>
+            <p className="text-2xl font-bold text-slate-900 mt-1">
+              {formatMoney(forecast.saldoInicial)}
+            </p>
+            <span className="text-[11px] text-slate-500 mt-1 block">
+              Saldo base al cierre: <strong className={horizonMetrics.saldoBaseFinal < 0 ? "text-red-600 font-mono" : "text-emerald-700 font-mono"}>{formatMoney(horizonMetrics.saldoBaseFinal, true)}</strong>
+            </span>
+          </div>
 
-        <div className="bg-white border border-slate-200 rounded-lg p-4">
-          <span className="text-xs text-slate-500 font-medium">Brecha Neta</span>
-          <p className="text-2xl font-bold text-slate-900 mt-1">
-            {formatMoney(forecast.totalCuentasPorCobrar + forecast.saldoInicial - forecast.totalObligacionesPendientes)}
-          </p>
-          <span className="text-[11px] text-slate-400 mt-1 block">Déficit estructural a financiar</span>
+          <div className="bg-white border border-slate-200 rounded-lg p-4">
+            <span className="text-xs text-slate-500 font-medium">Cuentas por Cobrar ({horizonDays}d)</span>
+            <p className="text-2xl font-bold text-slate-900 mt-1">
+              {formatMoney(horizonMetrics.totalCxC)}
+            </p>
+            <div className="text-[11px] text-slate-500 mt-1 flex flex-wrap items-center gap-1.5">
+              <span className="text-amber-700 font-medium">{formatMoney(horizonMetrics.moraConsiderada, true)} mora</span>
+              <span>•</span>
+              <span>{formatMoney(horizonMetrics.ingresosFuturos, true)} al día</span>
+              <span className="text-[10px] text-slate-400">
+                ({includeDisputes ? "con disputas" : "sin disputas"})
+              </span>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-lg p-4">
+            <span className="text-xs text-slate-500 font-medium">Obligaciones ({horizonDays}d)</span>
+            <p className="text-2xl font-bold text-slate-900 mt-1">
+              {formatMoney(horizonMetrics.obligaciones)}
+            </p>
+            <span className="text-[11px] text-slate-400 mt-1 block">Compromisos en {horizonDays} días</span>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-lg p-4">
+            <span className="text-xs text-slate-500 font-medium">Brecha Neta ({horizonDays}d)</span>
+            <p className={`text-2xl font-bold mt-1 ${horizonMetrics.brecha >= 0 ? "text-slate-900" : "text-red-600"}`}>
+              {formatMoney(horizonMetrics.brecha)}
+            </p>
+            <span className="text-[11px] text-slate-400 mt-1 block">
+              {horizonMetrics.brecha >= 0
+                ? (includeDisputes ? "Superávit (mora + disputas)" : "Superávit (mora sin disputas)")
+                : "Déficit acumulado del período"}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -172,16 +245,15 @@ export default function CashflowForecast({ forecast }: Props) {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Selector de Horizonte */}
+            {/* Selector de Horizonte sincronizado */}
             <div className="inline-flex bg-slate-100 p-0.5 rounded text-xs">
               {[30, 60, 90].map((d) => (
                 <button
                   key={d}
                   type="button"
                   onClick={() => setHorizonDays(d as any)}
-                  className={`px-2.5 py-1 rounded transition cursor-pointer ${
-                    horizonDays === d ? "bg-white font-medium text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"
-                  }`}
+                  className={`px-2.5 py-1 rounded transition cursor-pointer ${horizonDays === d ? "bg-white font-medium text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"
+                    }`}
                 >
                   {d} días
                 </button>
@@ -190,16 +262,36 @@ export default function CashflowForecast({ forecast }: Props) {
           </div>
         </div>
 
-        {/* Simulador de Sensibilidad */}
-        <div className="bg-slate-50 rounded p-3 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
-          <div>
-            <span className="font-semibold text-slate-800">Sensibilidad de Cobranza:</span>
-            <span className="text-slate-500 ml-1">
-              Recuperar mora ({formatMoney(forecast.totalMora)})
-            </span>
+        {/* Simulador de Sensibilidad & Control de Facturas Conflictivas / En Disputa */}
+        <div className="bg-slate-50 border border-slate-200/70 rounded-lg p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs">
+          <div className="flex flex-wrap items-center gap-3">
+            <div>
+              <span className="font-semibold text-slate-800">Mora Objetivo:</span>
+              <span className="text-slate-600 font-mono ml-1">
+                {formatMoney(simulatedData.totalRecoverableMora)}
+              </span>
+            </div>
+
+            {/* Botón Toggle Facturas en Disputa / Conflictivas */}
+            <button
+              type="button"
+              onClick={() => setIncludeDisputes(!includeDisputes)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] border font-medium transition cursor-pointer ${includeDisputes
+                  ? "bg-amber-100 border-amber-300 text-amber-900 shadow-xs"
+                  : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                }`}
+              title="Haz clic para incluir o excluir facturas en disputa/conflicto legal o comercial"
+            >
+              <span className={`w-2 h-2 rounded-full ${includeDisputes ? "bg-amber-600" : "bg-slate-300"}`} />
+              <span>Facturas en conflicto ({formatMoney(forecast.totalEnDisputa, true)}):</span>
+              <strong className={includeDisputes ? "text-amber-800" : "text-slate-500"}>
+                {includeDisputes ? "Consideradas" : "Excluidas (Conservador)"}
+              </strong>
+            </button>
           </div>
 
           <div className="flex items-center gap-3">
+            <span className="text-slate-500 hidden sm:inline">Sensibilidad:</span>
             <input
               type="range"
               min="0"
@@ -207,10 +299,10 @@ export default function CashflowForecast({ forecast }: Props) {
               step="5"
               value={moraRecoveryPct}
               onChange={(e) => setMoraRecoveryPct(Number(e.target.value))}
-              className="w-36 h-1 bg-slate-300 rounded appearance-none cursor-pointer accent-slate-900"
+              className="w-32 sm:w-36 h-1 bg-slate-300 rounded appearance-none cursor-pointer accent-slate-900"
             />
             <span className="font-mono font-bold text-slate-900 w-10 text-right">{moraRecoveryPct}%</span>
-            <span className="text-slate-400">|</span>
+            <span className="text-slate-300">|</span>
             <span className="text-slate-600">
               Runway:{" "}
               <strong className={simulatedData.simRunway >= horizonDays ? "text-emerald-700" : "text-slate-900"}>
