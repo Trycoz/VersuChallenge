@@ -244,21 +244,8 @@ export default function CashflowForecast({ forecast }: Props) {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Selector de Horizonte sincronizado */}
-            <div className="inline-flex bg-slate-100 p-0.5 rounded text-xs">
-              {[30, 60, 90].map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setHorizonDays(d as any)}
-                  className={`px-2.5 py-1 rounded transition cursor-pointer ${horizonDays === d ? "bg-white font-medium text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"
-                    }`}
-                >
-                  {d} días
-                </button>
-              ))}
-            </div>
+          <div className="text-xs text-slate-500">
+            Vista: <span className="font-semibold text-slate-800">{horizonDays} días</span>
           </div>
         </div>
 
